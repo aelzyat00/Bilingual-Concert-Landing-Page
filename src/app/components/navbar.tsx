@@ -24,13 +24,8 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
   }, [scrollY]);
 
   const t = {
-<<<<<<< HEAD
-    ar: { tickets: 'التذاكر', book: 'احجز الآن', switchLang: 'EN' },
-    en: { tickets: 'Tickets', book: 'Book Now', switchLang: 'ع' },
-=======
     ar: { tickets: 'التذاكر', book: 'احجز الآن', switchLang: 'EN', upcoming: 'الفعاليات القادمة', comingSoon: 'قريباً' },
     en: { tickets: 'Tickets', book: 'Book Now', switchLang: 'ع', upcoming: 'Upcoming Events', comingSoon: 'Coming soon' },
->>>>>>> 31b70d1c (chore: prepare gh-pages deploy (vite base + deploy scripts))
   }[lang];
 
   return (
@@ -67,8 +62,6 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
                 {t.tickets}
               </button>
               <button
-<<<<<<< HEAD
-=======
                 onClick={() => alert(t.comingSoon)}
                 className="text-white/60 hover:text-white text-sm transition-colors"
                 style={{ fontFamily: AR(lang) }}
@@ -76,7 +69,6 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
                 {t.upcoming}
               </button>
               <button
->>>>>>> 31b70d1c (chore: prepare gh-pages deploy (vite base + deploy scripts))
                 onClick={onLanguageToggle}
                 className="flex items-center gap-1.5 text-[#C6A04C]/70 hover:text-[#C6A04C] text-sm transition-colors"
                 style={{ fontFamily: AR(lang) }}
@@ -114,10 +106,7 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
           className="fixed top-16 inset-x-0 z-30 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-[#C6A04C]/10 py-6 px-6 flex flex-col gap-4 md:hidden"
         >
           <button onClick={() => { onBookNow(); setMenuOpen(false); }} className="text-white/70 text-base" style={{ fontFamily: AR(lang) }}>{t.tickets}</button>
-<<<<<<< HEAD
-=======
           <button onClick={() => { alert(t.comingSoon); setMenuOpen(false); }} className="text-white/70 text-base" style={{ fontFamily: AR(lang) }}>{t.upcoming}</button>
->>>>>>> 31b70d1c (chore: prepare gh-pages deploy (vite base + deploy scripts))
           <button onClick={onLanguageToggle} className="text-[#C6A04C]/70 text-base flex items-center gap-2" style={{ fontFamily: AR(lang) }}>
             <Globe className="w-4 h-4" />{t.switchLang}
           </button>
