@@ -10,22 +10,24 @@ interface BookingFlowProps {
   onClose: () => void;
 }
 
-
 function genBookingId() {
   return `RT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 }
 
-function validate(formData: { name: string; phone: string; email: string }) {
+function validate(formData: { name: string; phone: string; email: string; quantity: number }) {
   const errors: Record<string, string> = {};
   if (formData.name.trim().length < 2) errors.name = 'name';
   if (!/^(01)[0-9]{9}$/.test(formData.phone.replace(/\s/g, ''))) errors.phone = 'phone';
   if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'email';
+  if (!Number.isInteger(formData.quantity) || formData.quantity < 1) errors.quantity = 'quantity';
   return errors;
 }
 
 export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', quantity: 1 });
+  const [paymentMethod, setPaymentMethod] = useState<'vodafone' | 'instapay' | 'card'>('vodafone');
+  const [seatsNote, setSeatsNote] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [receipt, setReceipt] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -33,6 +35,10 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
   const [copied, setCopied] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const quantityRef = useRef<HTMLInputElement>(null);
 
   // Focus trap
   useEffect(() => {
@@ -46,7 +52,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
   const content = {
     ar: {
-      stepLabels: ['التذكرة', 'بياناتك', 'الدفع'],
+      stepLabels: ['التذكرة', 'بياناتك', 'راجع معلوماتك', 'طريقة الدفع', 'المقاعد/ملاحظة', 'الدفع', 'انتهى'],
       vipName: 'VIP Signature', stdName: 'Classic Ticket',
       vipPrice: '500 جنيه', stdPrice: '350 جنيه',
       ticketLabel: 'التذكرة المختارة', priceLabel: 'السعر',
@@ -54,9 +60,15 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       phone: 'رقم الهاتف', phonePh: '01XXXXXXXXX',
       email: 'البريد الإلكتروني', emailPh: 'example@email.com',
       emailOpt: 'اختياري',
+      quantity: 'عدد التذاكر', quantityPh: 'أدخل عدد التذاكر',
+      paymentTitle: 'اختر طريقة الدفع',
+      paymentOptions: ['فودافون كاش', 'إنستاباي', 'كارت بنكي'],
+      seatsLabel: 'اختر الأماكن أو اكتب ملاحظة', seatsPh: 'اكتب ملاحظتك هنا',
+      whatsappText: 'ارسل الدفع عبر واتساب',
       next: 'التالي', back: 'رجوع',
+      reviewTitle: 'راجع معلوماتك',
       payTitle: 'تعليمات الدفع',
-      payDesc: 'حوّل المبلغ إلى أحد الحسابات التالية ثم ارفع إيصال التحويل',
+      payDesc: 'حوّل المبلغ إلى أحد الحسابات التالية ثم ارفع صورة الإيصال',
       vodafone: 'فودافون كاش', instapay: 'إنستاباي',
       copy: 'نسخ', copied: 'تم ✓',
       uploadLabel: 'ارفع إيصال الدفع',
@@ -65,20 +77,22 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       confirm: 'تأكيد الحجز',
       confirmed: 'تم تأكيد حجزك!',
       bookingNo: 'رقم الحجز',
-      thanks: 'شكراً لاختيارك روح الطرب — نراك قريباً ✨',
+      thanks: 'شكراً لاختيارك روح الطرب. التذكرة ستُرسل بعد التأكيد واستلام الواتساب ✨',
       close: 'إغلاق',
       uploaded: 'تم رفع الإيصال ✓',
+      whatsappReceive: 'استلام التذاكر عبر واتساب',
       errs: {
         name: 'الاسم يجب أن يحتوي على حرفين على الأقل',
         phone: 'رقم يبدأ بـ 01 ومكون من 11 رقم',
         email: 'بريد إلكتروني غير صحيح',
+        quantity: 'أدخل عدداً صحيحاً أكبر من 0',
         receipt: 'ارفع إيصال الدفع أولاً',
         size: 'حجم الملف يتجاوز 10MB',
         type: 'نوع الملف غير مدعوم',
       },
     },
     en: {
-      stepLabels: ['Ticket', 'Details', 'Payment'],
+      stepLabels: ['Ticket', 'Details', 'Review', 'Payment Method', 'Seats/Note', 'Payment', 'Done'],
       vipName: 'VIP Signature', stdName: 'Classic Ticket',
       vipPrice: 'EGP 500', stdPrice: 'EGP 350',
       ticketLabel: 'Selected Ticket', priceLabel: 'Price',
@@ -86,9 +100,15 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       phone: 'Phone Number', phonePh: '01XXXXXXXXX',
       email: 'Email Address', emailPh: 'example@email.com',
       emailOpt: 'optional',
+      quantity: 'Quantity', quantityPh: 'Enter number of tickets',
+      paymentTitle: 'Choose payment method',
+      paymentOptions: ['Vodafone Cash', 'InstaPay', 'Bank Card'],
+      seatsLabel: 'Select seats or write a note', seatsPh: 'Type your note here',
+      whatsappText: 'Send payment via WhatsApp',
       next: 'Next', back: 'Back',
+      reviewTitle: 'Review your info',
       payTitle: 'Payment Instructions',
-      payDesc: 'Transfer the amount to one of the accounts below, then upload your receipt',
+      payDesc: 'Transfer the amount to one of the accounts below, then upload a photo of your receipt',
       vodafone: 'Vodafone Cash', instapay: 'InstaPay',
       copy: 'Copy', copied: 'Copied ✓',
       uploadLabel: 'Upload Payment Receipt',
@@ -97,13 +117,15 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       confirm: 'Confirm Booking',
       confirmed: 'Booking Confirmed!',
       bookingNo: 'Booking ID',
-      thanks: 'Thank you for choosing Rooh Al-Tarab — see you soon ✨',
+      thanks: 'Thank you for choosing Rooh Al-Tarab. Your ticket will be sent after confirmation and WhatsApp receipt ✨',
       close: 'Close',
       uploaded: 'Receipt uploaded ✓',
+      whatsappReceive: 'Receive tickets via WhatsApp',
       errs: {
         name: 'Name must be at least 2 characters',
         phone: 'Must start with 01 and be 11 digits',
         email: 'Invalid email address',
+        quantity: 'Enter a valid number greater than 0',
         receipt: 'Please upload your payment receipt',
         size: 'File exceeds 10MB limit',
         type: 'Unsupported file type',
@@ -136,17 +158,49 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
   const goNext2 = () => {
     const errs = validate(formData);
     setErrors(errs);
-    if (Object.keys(errs).length === 0) setStep(3);
+    if (Object.keys(errs).length === 0) {
+      setStep(3); // move to review
+    } else {
+      // focus first invalid field for accessibility
+      const first = Object.keys(errs)[0];
+      const refs: Record<string, React.RefObject<HTMLInputElement>> = {
+        name: nameRef,
+        phone: phoneRef,
+        email: emailRef,
+        quantity: quantityRef,
+      };
+      refs[first]?.current?.focus();
+    }
+  };
+
+  const goNextFromReview = () => {
+    // from review -> payment method
+    setStep(4);
+  };
+
+  const goNext3 = () => {
+    // from payment method -> seats/note
+    setStep(5);
+  };
+
+  const goNext4 = () => {
+    // from seats -> payment upload
+    setStep(6);
   };
 
   const handleConfirm = () => {
-    if (!receipt) { toast.error(content.errs.receipt); return; }
-    setStep(4);
+    if (!receipt) {
+      toast.error(content.errs.receipt);
+      fileRef.current?.focus();
+      return;
+    }
+    setStep(7);
   };
 
   const BackBtn = ({ onClick }: { onClick: () => void }) => (
     <button
       onClick={onClick}
+      aria-label={content.back}
       className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors text-sm py-3.5 px-4 rounded-xl hover:bg-white/5"
       style={{ fontFamily: AR(lang) }}
     >
@@ -175,7 +229,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/85 backdrop-blur-lg z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/85 backdrop-blur-lg z-50 flex items-center justify-center p-4 overflow-x-hidden"
         onClick={onClose}
       >
         <motion.div
@@ -186,14 +240,14 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
           exit={{ scale: 0.9, y: 30, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
           onClick={e => e.stopPropagation()}
-          className="relative bg-[#0D0D0D] border border-[#C6A04C]/20 rounded-2xl max-w-md w-full max-h-[92vh] overflow-y-auto shadow-[0_0_80px_rgba(0,0,0,0.8)] outline-none"
+          className="relative bg-[#0D0D0D] border border-[#C6A04C]/20 rounded-2xl max-w-[420px] w-full max-h-[92vh] overflow-y-auto overflow-x-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] outline-none"
           style={{ scrollbarWidth: 'thin', scrollbarColor: '#C6A04C22 transparent' }}
           role="dialog" aria-modal="true"
         >
           {/* Top accent */}
           <div className={`h-[2px] w-full bg-gradient-to-r ${isVip ? 'from-[#C6A04C] via-[#D4AF37] to-[#A8382A]' : 'from-[#A8382A] via-[#C6A04C] to-[#A8382A]'}`} />
 
-          <div className="p-6 sm:p-8">
+          <div className="pt-12 p-6 sm:pt-14 sm:p-8">
             {/* Close */}
             <button
               onClick={onClose}
@@ -203,32 +257,34 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
               <X className="w-4 h-4" />
             </button>
 
-            {/* Progress */}
-            {step < 4 && (
-              <div className="flex items-center justify-center gap-2 mb-8">
-                {content.stepLabels.map((label, i) => {
-                  const s = i + 1;
-                  const done = step > s, active = step === s;
-                  return (
-                    <div key={s} className="flex items-center gap-2">
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                          done ? 'bg-gradient-to-br from-[#C6A04C] to-[#A8382A] text-white'
-                               : active ? 'bg-gradient-to-br from-[#C6A04C] to-[#A8382A] text-[#080808] shadow-lg shadow-[#C6A04C]/30'
-                               : 'bg-white/[0.06] text-white/25 border border-white/8'
-                        }`}>
-                          {done ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : s}
+            {/* Progress (absolute, sits above card edge) */}
+            {step < content.stepLabels.length && (
+                <div className="absolute inset-x-0 -top-6 z-40 pointer-events-none">
+                <div className="flex items-center justify-center gap-2 bg-transparent px-2 pointer-events-auto overflow-visible">
+                  {content.stepLabels.map((label, i) => {
+                    const s = i + 1;
+                    const done = step > s, active = step === s;
+                    return (
+                      <div key={s} className="flex items-center gap-2" aria-label={`Step ${s}: ${label}`} aria-current={active ? 'step' : undefined}>
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 relative -top-1 ${
+                            done ? 'bg-gradient-to-br from-[#C6A04C] to-[#A8382A] text-white'
+                                 : active ? 'bg-gradient-to-br from-[#C6A04C] to-[#A8382A] text-[#080808] shadow-lg shadow-[#C6A04C]/30'
+                                 : 'bg-white/[0.06] text-white/25 border border-white/8'
+                          }`}>
+                            {done ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : s}
+                          </div>
+                          <span className={`text-[10px] ${active ? 'text-[#C6A04C]' : 'text-white/25'} transition-colors`} style={{ fontFamily: AR(lang) }}>
+                            {label}
+                          </span>
                         </div>
-                        <span className={`text-[10px] ${active ? 'text-[#C6A04C]' : 'text-white/25'} transition-colors`} style={{ fontFamily: AR(lang) }}>
-                          {label}
-                        </span>
+                        {s < content.stepLabels.length && (
+                            <div className={`flex-1 h-px mt-[-14px] mx-2 transition-all duration-500 ${done ? 'bg-gradient-to-r from-[#C6A04C] to-[#A8382A]' : 'bg-white/8'}`} />
+                        )}
                       </div>
-                      {s < 3 && (
-                        <div className={`w-8 sm:w-12 h-px mt-[-18px] transition-all duration-500 ${done ? 'bg-gradient-to-r from-[#C6A04C] to-[#A8382A]' : 'bg-white/8'}`} />
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -265,29 +321,41 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
               {/* ── Step 2: Form ── */}
               {step === 2 && (
                 <motion.div key="s2" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
-                  <h2 className="text-xl font-black text-center text-white mb-6" style={{ fontFamily: AR(lang) }}>{content.stepLabels[1]}</h2>
+                  <motion.h2 id="step-heading" className="text-xl font-black text-center text-white mb-6" style={{ fontFamily: AR(lang) }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>{content.stepLabels[1]}</motion.h2>
                   <div className="space-y-4 mb-6">
                     {/* Name */}
                     <div>
-                      <label className="block text-white/50 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.name}</label>
+                      <label htmlFor="name" className="block text-white/50 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.name}</label>
                       <input
+                        id="name"
+                        ref={nameRef}
                         type="text" value={formData.name} placeholder={content.namePh}
                         onChange={e => { setFormData(p => ({ ...p, name: e.target.value })); setErrors(p => ({ ...p, name: '' })); }}
                         className={inputCls(errors.name)} style={{ fontFamily: AR(lang) }}
                         autoComplete="name"
+                        required
+                        aria-required="true"
+                        aria-invalid={errors.name ? 'true' : 'false'}
+                        aria-describedby={errors.name ? 'name-error' : undefined}
                       />
-                      {errors.name && <p className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }}><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.name}</p>}
+                      {errors.name && <p id="name-error" className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }} role="alert"><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.name}</p>}
                     </div>
                     {/* Phone */}
                     <div>
-                      <label className="block text-white/50 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.phone}</label>
+                      <label htmlFor="phone" className="block text-white/50 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.phone}</label>
                       <input
+                        id="phone"
+                        ref={phoneRef}
                         type="tel" value={formData.phone} placeholder={content.phonePh} inputMode="numeric"
                         onChange={e => { setFormData(p => ({ ...p, phone: e.target.value })); setErrors(p => ({ ...p, phone: '' })); }}
                         className={inputCls(errors.phone)} style={{ direction: 'ltr' }}
                         autoComplete="tel"
+                        required
+                        aria-required="true"
+                        aria-invalid={errors.phone ? 'true' : 'false'}
+                        aria-describedby={errors.phone ? 'phone-error' : undefined}
                       />
-                      {errors.phone && <p className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }}><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.phone}</p>}
+                      {errors.phone && <p id="phone-error" className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }} role="alert"><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.phone}</p>}
                     </div>
                     {/* Email */}
                     <div>
@@ -296,27 +364,167 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                         <span className="text-white/20">({content.emailOpt})</span>
                       </label>
                       <input
+                        id="email"
+                        ref={emailRef}
                         type="email" value={formData.email} placeholder={content.emailPh} inputMode="email"
                         onChange={e => { setFormData(p => ({ ...p, email: e.target.value })); setErrors(p => ({ ...p, email: '' })); }}
                         className={inputCls(errors.email)} style={{ direction: 'ltr' }}
                         autoComplete="email"
+                        aria-invalid={errors.email ? 'true' : 'false'}
+                        aria-describedby={errors.email ? 'email-error' : undefined}
                       />
-                      {errors.email && <p className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }}><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.email}</p>}
+                      {errors.email && <p id="email-error" className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }} role="alert"><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.email}</p>}
+                    </div>
+                    {/* Quantity */}
+                    <div>
+                      <label htmlFor="quantity" className="block text-white/50 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.quantity}</label>
+                      <input
+                        id="quantity"
+                        ref={quantityRef}
+                        type="number" min={1} value={formData.quantity} placeholder={content.quantityPh}
+                        onChange={e => { setFormData(p => ({ ...p, quantity: parseInt(e.target.value) || 1 })); setErrors(p => ({ ...p, quantity: '' })); }}
+                        className={inputCls(errors.quantity)} style={{ width: '120px' }}
+                        required
+                        aria-required="true"
+                        aria-invalid={errors.quantity ? 'true' : 'false'}
+                        aria-describedby={errors.quantity ? 'quantity-error' : undefined}
+                      />
+                      {errors.quantity && <p id="quantity-error" className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }} role="alert"><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.quantity}</p>}
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <BackBtn onClick={() => setStep(1)} />
-                    <button onClick={goNext2} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
+                    <button
+                      onClick={goNext2}
+                      disabled={Object.keys(validate(formData)).length > 0}
+                      className={`flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 ${Object.keys(validate(formData)).length===0?'animate-pulse':''}`}
+                      style={{ fontFamily: AR(lang) }}
+                    >
                       {content.next} {lang === 'ar' ? '←' : '→'}
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* ── Step 3: Payment ── */}
+              {/* ── Step 3: Review ── */}
               {step === 3 && (
-                <motion.div key="s3" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
-                  <h2 className="text-xl font-black text-center text-white mb-1" style={{ fontFamily: AR(lang) }}>{content.payTitle}</h2>
+                <motion.div key="s3-review" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
+                  <h2 className="text-xl font-black text-center text-white mb-4" style={{ fontFamily: AR(lang) }}>{content.reviewTitle}</h2>
+                  <div className="space-y-3 mb-6">
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-white/40 text-xs mb-0.5" style={{ fontFamily: AR(lang) }}>{content.name}</p>
+                        <p className="text-white truncate" style={{ fontFamily: AR(lang) }}>{formData.name || '-'}</p>
+                      </div>
+                      <button onClick={() => setStep(2)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg">{lang==='ar'?'تعديل':'Edit'}</button>
+                    </div>
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-white/40 text-xs mb-0.5" style={{ fontFamily: AR(lang) }}>{content.phone}</p>
+                        <p className="text-white truncate" style={{ fontFamily: AR(lang) }}>{formData.phone || '-'}</p>
+                      </div>
+                      <button onClick={() => setStep(2)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل الهاتف':'Edit phone'}>{lang==='ar'?'تعديل':'Edit'}</button>
+                    </div>
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-white/40 text-xs mb-0.5" style={{ fontFamily: AR(lang) }}>{content.email}</p>
+                        <p className="text-white truncate" style={{ fontFamily: AR(lang) }}>{formData.email || '-'}</p>
+                      </div>
+                      <button onClick={() => setStep(2)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل البريد':'Edit email'}>{lang==='ar'?'تعديل':'Edit'}</button>
+                    </div>
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-white/40 text-xs mb-0.5" style={{ fontFamily: AR(lang) }}>{content.quantity}</p>
+                        <p className="text-white" style={{ fontFamily: AR(lang) }}>{formData.quantity}</p>
+                      </div>
+                      <button onClick={() => setStep(2)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل الكمية':'Edit quantity'}>{lang==='ar'?'تعديل':'Edit'}</button>
+                    </div>
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-white/40 text-xs mb-0.5" style={{ fontFamily: AR(lang) }}>{content.seatsLabel}</p>
+                        <p className="text-white truncate" style={{ fontFamily: AR(lang) }}>{seatsNote || '-'}</p>
+                      </div>
+                      <button onClick={() => setStep(4)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل الأماكن':'Edit seats/note'}>{lang==='ar'?'تعديل':'Edit'}</button>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <BackBtn onClick={() => setStep(2)} />
+                    <button onClick={goNextFromReview} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
+                      {content.next} {lang === 'ar' ? '←' : '→'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Step 4: Payment Method ── */}
+              {step === 4 && (
+                <motion.div key="s4" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
+                  <motion.h2
+                    id="step-heading"
+                    className="text-xl font-black text-center text-white mb-6"
+                    style={{ fontFamily: AR(lang) }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >{content.paymentTitle}</motion.h2>
+                  <div role="radiogroup" aria-labelledby="step-heading" aria-required="true" className="space-y-3 mb-6">
+                    {content.paymentOptions.map((opt, idx) => {
+                      const key = opt.toLowerCase().replace(/\s+/g, '');
+                      return (
+                        <label key={idx} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio" name="payment" value={key}
+                            checked={paymentMethod === key as any}
+                            onChange={() => setPaymentMethod(key as any)}
+                            className="accent-[#C6A04C]"
+                          />
+                          <span className="text-white" style={{ fontFamily: AR(lang) }}>{opt}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-3">
+                    <BackBtn onClick={() => setStep(3)} />
+                    <button onClick={goNext3} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
+                      {content.next} {lang === 'ar' ? '←' : '→'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Step 5: Seats / Note ── */}
+              {step === 5 && (
+                <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
+                  <motion.h2
+                    id="step-heading"
+                    className="text-xl font-black text-center text-white mb-6"
+                    style={{ fontFamily: AR(lang) }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >{content.seatsLabel}</motion.h2>
+                  <textarea
+                    id="seats"
+                    value={seatsNote}
+                    placeholder={content.seatsPh}
+                    onChange={e => setSeatsNote(e.target.value)}
+                    className="w-full bg-[#111] border border-white/8 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:bg-[#161616] transition-all h-24 resize-none"
+                    style={{ fontFamily: AR(lang) }}
+                    aria-label={content.seatsLabel}
+                  />
+                  <div className="flex gap-3 mt-4">
+                    <BackBtn onClick={() => setStep(4)} />
+                    <button onClick={goNext4} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
+                      {content.next} {lang === 'ar' ? '←' : '→'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Step 6: Payment (upload + WhatsApp) ── */}
+              {step === 6 && (
+                <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
+                  <motion.h2 className="text-xl font-black text-center text-white mb-1" style={{ fontFamily: AR(lang) }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>{content.payTitle}</motion.h2>
                   <p className="text-white/35 text-xs text-center mb-6 leading-relaxed" style={{ fontFamily: AR(lang) }}>{content.payDesc}</p>
 
                   {/* Amount reminder */}
@@ -337,7 +545,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                           onClick={() => handleCopy(val, key)}
                           className={`flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg transition-all ${
                             copied === key
-                              ? 'bg-green-500/15 text-green-400 border border-green-500/25'
+                              ? 'bg-green-500/15 text-green-400 border border-green-500/25 animate-pulse'
                               : 'bg-[#C6A04C]/8 text-[#C6A04C]/70 hover:text-[#C6A04C] hover:bg-[#C6A04C]/15 border border-[#C6A04C]/15'
                           }`}
                           aria-label={`Copy ${label}`}
@@ -351,6 +559,8 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
                   {/* Upload */}
                   <label
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { fileRef.current?.click(); e.preventDefault(); } }}
                     className={`block rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-300 mb-5 ${
                       isDragging ? 'border-[#C6A04C] bg-[#C6A04C]/8 scale-[1.01]'
                       : receipt ? 'border-green-500/40 bg-green-500/5'
@@ -369,26 +579,43 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                     ) : (
                       <>
                         <Upload className="w-7 h-7 text-white/20 mx-auto mb-2" />
-                        <p className="text-white/60 text-sm font-semibold mb-1" style={{ fontFamily: AR(lang) }}>{content.uploadLabel}</p>
+                        <p className="text-white/60 text-sm font-semibold mb-1" style={{ fontFamily: AR(lang) }} id="upload-instructions">{content.uploadLabel}</p>
                         <p className="text-white/25 text-xs mb-0.5">{content.dragText}</p>
                         <p className="text-white/15 text-xs">{content.fileHint}</p>
                       </>
                     )}
-                    <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }} className="hidden" />
+                    <input ref={fileRef} id="receipt-file" type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); }} className="hidden" aria-describedby="upload-instructions" />
                   </label>
 
+                  {/* WhatsApp link */}
+                  <div className="mb-6 text-center">
+                    <a
+                      href={`https://wa.me/201015656650?text=${encodeURIComponent(lang==='ar'?`ضع صورة الدفع. الاسم: ${formData.name}, الهاتف: ${formData.phone}`:`Please send payment image. Name: ${formData.name}, Phone: ${formData.phone}`)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="inline-block bg-green-500/20 text-green-400 px-4 py-2 rounded-xl hover:bg-green-500/25 transition"
+                      style={{ fontFamily: AR(lang) }}
+                    >
+                      {content.whatsappText}
+                    </a>
+                  </div>
+
                   <div className="flex gap-3">
-                    <BackBtn onClick={() => setStep(2)} />
-                    <button onClick={handleConfirm} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
+                    <BackBtn onClick={() => setStep(5)} />
+                    <button
+                      onClick={handleConfirm}
+                      disabled={!receipt}
+                      className={`flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 ${receipt?'animate-pulse':''}`}
+                      style={{ fontFamily: AR(lang) }}
+                    >
                       {content.confirm}
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* ── Step 4: Confirmed ── */}
-              {step === 4 && (
-                <motion.div key="s4" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }} className="text-center py-4">
+              {/* ── Step 7: Confirmed ── */}
+              {step === 7 && (
+                <motion.div key="s6" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }} className="text-center py-4">
                   {/* Checkmark */}
                   <motion.div
                     initial={{ scale: 0, rotate: -90 }}
@@ -399,15 +626,33 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                     <Check className="w-10 h-10 text-[#080808]" strokeWidth={3} />
                   </motion.div>
 
-                  <h2 className="text-2xl sm:text-3xl font-black text-white mb-2" style={{ fontFamily: AR(lang) }}>{content.confirmed}</h2>
+                  <motion.h2 className="text-2xl sm:text-3xl font-black text-white mb-2" style={{ fontFamily: AR(lang) }} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200 }}>{content.confirmed}</motion.h2>
                   <p className="text-white/40 text-sm mb-8 leading-relaxed" style={{ fontFamily: AR(lang) }}>{content.thanks}</p>
 
                   {/* Booking card */}
                   <div className="bg-gradient-to-br from-[#C6A04C]/8 to-[#A8382A]/8 border border-[#C6A04C]/25 rounded-xl p-5 mb-6">
                     <p className="text-white/35 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.bookingNo}</p>
-                    <p className="text-2xl font-black text-[#C6A04C] font-mono tracking-widest select-all mb-2">{bookingId}</p>
+                    <p className="text-2xl font-black text-[#C6A04C] font-mono tracking-widest select-all mb-2 break-words">{bookingId}</p>
                     <div className="h-px bg-[#C6A04C]/15 mb-2" />
                     <p className="text-white/30 text-xs" style={{ fontFamily: AR(lang) }}>{ticketName} · {ticketPrice}</p>
+                  </div>
+
+                  {/* Download/WhatsApp actions */}
+                  <div className="space-y-3 mb-6">
+                    <button disabled className="w-full bg-white/10 text-white/50 font-black py-3 rounded-xl cursor-not-allowed text-sm" style={{ fontFamily: AR(lang) }}>
+                      {lang === 'ar' ? 'تحميل التذكرة' : 'Download Ticket'}
+                    </button>
+                    <p className="text-white/30 text-xs mt-2" style={{ fontFamily: AR(lang) }}>
+                      {lang === 'ar' ? 'التذكرة متاحة بعد التأكيد واستلام الواتساب.' : 'Ticket available after confirmation and WhatsApp receipt.'}
+                    </p>
+                    <a
+                      href={`https://wa.me/201015656650?text=${encodeURIComponent(lang==='ar'?`أود استلام التذاكر. الاسم: ${formData.name}, الهاتف: ${formData.phone}`:`I would like to receive tickets. Name: ${formData.name}, Phone: ${formData.phone}`)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="w-full inline-block bg-green-500/20 text-green-400 font-black py-3 rounded-xl hover:bg-green-500/25 text-sm transition"
+                      style={{ fontFamily: AR(lang) }}
+                    >
+                      {content.whatsappReceive}
+                    </a>
                   </div>
 
                   {/* Notes decoration */}
