@@ -273,7 +273,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                       <input
                         type="text" value={formData.name} placeholder={content.namePh}
                         onChange={e => { setFormData(p => ({ ...p, name: e.target.value })); setErrors(p => ({ ...p, name: '' })); }}
-                        className={inputCls(errors.name)} style={{ fontFamily: AR(lang), direction: 'auto' }}
+                        className={inputCls(errors.name)} style={{ fontFamily: AR(lang) }}
                         autoComplete="name"
                       />
                       {errors.name && <p className="mt-1 text-red-400/80 text-xs flex items-center gap-1" style={{ fontFamily: AR(lang) }}><AlertCircle className="w-3 h-3 flex-shrink-0" />{content.errs.name}</p>}
