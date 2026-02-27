@@ -1,6 +1,7 @@
 import { motion, useInView } from 'motion/react';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Sparkles, Music2, Star } from 'lucide-react';
+import logoImage from '@/assets/logo.png';
 
 interface TicketsSectionProps {
   lang: 'ar' | 'en';
@@ -20,11 +21,11 @@ function CounterBadge({ label, value, lang }: { label: string; value: string; la
 
 function TicketCard({
   lang, isVip, onSelect,
-  title, titleSub, price, currency, features, buttonLabel, badge
+  title, titleSub, price, currency, description, buttonLabel, badge
 }: {
   lang: 'ar' | 'en'; isVip: boolean; onSelect: () => void;
   title: string; titleSub: string; price: string; currency: string;
-  features: string[]; buttonLabel: string; badge?: string;
+  description: string; buttonLabel: string; badge?: string;
 }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-60px' });
@@ -64,8 +65,7 @@ function TicketCard({
           aria-hidden="true"
         />
 
-        <div className="p-7 sm:p-8 relative">
-          {/* Badge */}
+        <div className="p-7 sm:p-8 relative">            <img src={logoImage} alt="" className="absolute top-4 right-4 w-12 h-12 opacity-20" />          {/* Badge */}
           {badge && (
             <div className="flex justify-center mb-5">
               <span
@@ -106,18 +106,16 @@ function TicketCard({
             </div>
           </div>
 
-          {/* Features */}
-          <ul className="space-y-2.5 mb-8">
-            {features.map((f, i) => (
-              <li key={i} className="flex items-center gap-2.5 text-white/60 text-sm" style={{ fontFamily: AR(lang) }}>
-                <Star
-                  className={`w-3 h-3 flex-shrink-0 ${isVip ? 'text-[#C6A04C]' : 'text-[#A8382A]/70'}`}
-                  fill="currentColor"
-                />
-                {f}
-              </li>
-            ))}
-          </ul>
+          {/* Description */}
+          <div className="flex items-start gap-2 mb-8" style={{ fontFamily: AR(lang) }}>
+            <Star
+              className={`w-4 h-4 flex-shrink-0 mt-1 ${isVip ? 'text-[#C6A04C]' : 'text-[#A8382A]/70'}`}
+              fill="currentColor"
+            />
+            <p className="text-white/70 text-sm leading-relaxed">
+              {description}
+            </p>
+          </div>
 
           {/* CTA */}
           <motion.button
@@ -145,37 +143,61 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
   const t = {
     ar: {
       heading: 'التذاكر',
-      subheading: 'اختر تجربتك الموسيقية',
+      subheading: 'تذاكر أمسية خامس ليالي عيد الفطر المبارك',
       classicTitle: 'Classic', classicSub: 'كلاسيك',
       classicBadge: 'حضور راقٍ',
       classicPrice: '350', classicCur: 'جنيه',
-      classicFeatures: ['دخول حفل روح الطرب', 'مقعد كلاسيك مميز', 'أجواء احترافية', 'تجربة موسيقية أصيلة'],
       vipTitle: 'VIP Signature', vipSub: 'في آي بي سيجنتشر',
       vipBadge: 'تجربة حصرية',
       vipPrice: '500', vipCur: 'جنيه',
-      vipFeatures: ['دخول VIP حصري', 'مقعد مميز في المقدمة', 'استقبال خاص', 'أجواء فاخرة وخصوصية', 'هدية تذكارية'],
       cta: 'احجز الآن',
-      stat1L: 'مارس', stat1V: '٢٠',
-      stat2L: 'العيد', stat2V: 'اليوم ٥',
-      stat3L: 'ليلة', stat3V: '١',
+      classicDescAr: 'حضور راقٍ لليلة طربية استثنائية، في أجواء تحمل روح الأصالة والتنظيم الاحترافي، لتعيش تجربة موسيقية مميزة تليق بذوقك.',
+      vipDescAr: 'تجربة حضور أكثر خصوصية وتميّزًا، ضمن أجواء فاخرة تعكس هوية الحفل وتمنحك إحساسًا مختلفًا بالاستمتاع والرقي.',
     },
     en: {
       heading: 'Tickets',
-      subheading: 'Choose Your Musical Experience',
+      subheading: 'Ticket for the fifth evening of Eid al-Fitr',
+      classicDescEn: 'An elegant admission to a distinguished evening of authentic Arabic music, offering a refined atmosphere and a professionally curated experience.',
+      vipDescEn: 'A more exclusive and distinguished attendance experience, crafted for guests who appreciate a refined and elevated musical atmosphere.',
       classicTitle: 'Classic', classicSub: 'كلاسيك',
       classicBadge: 'Elegant Attendance',
       classicPrice: '350', classicCur: 'EGP',
-      classicFeatures: ['Concert admission', 'Classic premium seating', 'Professional atmosphere', 'Authentic musical experience'],
       vipTitle: 'VIP Signature', vipSub: 'في آي بي سيجنتشر',
       vipBadge: 'Exclusive Experience',
       vipPrice: '500', vipCur: 'EGP',
-      vipFeatures: ['Exclusive VIP entry', 'Front premium seating', 'Personal reception', 'Luxury private atmosphere', 'Commemorative gift'],
       cta: 'Book Now',
-      stat1L: 'March', stat1V: '20',
-      stat2L: 'Eid Day', stat2V: '5th',
-      stat3L: 'Night', stat3V: '1',
     },
   }[lang];
+
+  const [countdown, setCountdown] = useState({ days: '0', hours: '00', minutes: '00', seconds: '00' });
+
+  useEffect(() => {
+    const target = new Date('2026-03-26T20:00:00');
+    const update = () => {
+      const now = new Date();
+      let diff = target.getTime() - now.getTime();
+      if (diff <= 0) {
+        setCountdown({ days: '0', hours: '00', minutes: '00', seconds: '00' });
+        return;
+      }
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      diff -= d * (1000 * 60 * 60 * 24);
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      diff -= h * (1000 * 60 * 60);
+      const m = Math.floor(diff / (1000 * 60));
+      diff -= m * (1000 * 60);
+      const s = Math.floor(diff / 1000);
+      setCountdown({
+        days: `${d}`,
+        hours: String(h).padStart(2, '0'),
+        minutes: String(m).padStart(2, '0'),
+        seconds: String(s).padStart(2, '0'),
+      });
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [lang]);
 
   return (
     <section
@@ -227,7 +249,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
           <div className="h-px max-w-xs mx-auto bg-gradient-to-r from-transparent via-[#C6A04C]/40 to-transparent" />
         </motion.div>
 
-        {/* Stats bar */}
+        {/* Countdown bar */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
@@ -235,11 +257,13 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
           className="flex items-center justify-center gap-0 mb-14"
         >
           <div className="flex items-stretch bg-white/[0.03] border border-[#C6A04C]/12 rounded-2xl overflow-hidden divide-x divide-[#C6A04C]/10" dir="ltr">
-            <CounterBadge label={t.stat1L} value={t.stat1V} lang={lang} />
+            <CounterBadge label={lang === 'ar' ? 'أيام' : 'Days'} value={countdown.days} lang={lang} />
             <div className="w-px bg-[#C6A04C]/10" />
-            <CounterBadge label={t.stat2L} value={t.stat2V} lang={lang} />
+            <CounterBadge label={lang === 'ar' ? 'ساعات' : 'Hours'} value={countdown.hours} lang={lang} />
             <div className="w-px bg-[#C6A04C]/10" />
-            <CounterBadge label={t.stat3L} value={t.stat3V} lang={lang} />
+            <CounterBadge label={lang === 'ar' ? 'دقائق' : 'Minutes'} value={countdown.minutes} lang={lang} />
+            <div className="w-px bg-[#C6A04C]/10" />
+            <CounterBadge label={lang === 'ar' ? 'ثواني' : 'Seconds'} value={countdown.seconds} lang={lang} />
           </div>
         </motion.div>
 
@@ -251,7 +275,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             title={t.classicTitle} titleSub={t.classicSub}
             badge={t.classicBadge}
             price={t.classicPrice} currency={t.classicCur}
-            features={t.classicFeatures}
+            description={lang === 'ar' ? t.classicDescAr : t.classicDescEn}
             buttonLabel={t.cta}
           />
           <TicketCard
@@ -260,7 +284,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
             title={t.vipTitle} titleSub={t.vipSub}
             badge={t.vipBadge}
             price={t.vipPrice} currency={t.vipCur}
-            features={t.vipFeatures}
+            description={lang === 'ar' ? t.vipDescAr : t.vipDescEn}
             buttonLabel={t.cta}
           />
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'motion/react';
 import logoImage from '@/assets/logo.png';
 
@@ -50,24 +50,53 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
 
   const t = {
     ar: {
-      date: 'الجمعة ٢٠ مارس ٢٠٢٦',
-      dateSub: 'Friday · March 20 · 2026',
+      date: '',
+      dateSub: '',
       eid: 'اليوم الخامس من العيد',
       tagline: 'حضور راقٍ لليلة طربية استثنائية',
       sub: 'في أجواء تحمل روح الأصالة والتنظيم الاحترافي',
-      cta: 'احجز تذكرتك',
+      cta: 'احجز تذكرتك الآن',
       scroll: 'اكتشف التذاكر',
     },
     en: {
-      date: 'Friday, March 20, 2026',
-      dateSub: 'الجمعة · ٢٠ مارس · ٢٠٢٦',
+      date: '',
+      dateSub: '',
       eid: '5th Day of Eid',
       tagline: 'An Elegant Evening of Authentic Arabic Music',
       sub: 'A refined atmosphere, professionally curated for those who appreciate the finest',
-      cta: 'Book Your Ticket',
+      cta: 'Book Your Ticket Now',
       scroll: 'Explore Tickets',
     },
   }[lang];
+
+  const [countdown, setCountdown] = useState('');
+
+  useEffect(() => {
+    const target = new Date('2026-03-26T20:00:00');
+    const update = () => {
+      const now = new Date();
+      let diff = target.getTime() - now.getTime();
+      if (diff <= 0) {
+        setCountdown(lang === 'ar' ? 'انتهى' : 'Started');
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      diff -= days * (1000 * 60 * 60 * 24);
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      diff -= hours * (1000 * 60 * 60);
+      const minutes = Math.floor(diff / (1000 * 60));
+      diff -= minutes * (1000 * 60);
+      const seconds = Math.floor(diff / 1000);
+      if (lang === 'ar') {
+        setCountdown(`${days} يوم ${hours} س ${minutes} د ${seconds} ث`);
+      } else {
+        setCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      }
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [lang]);
 
   return (
     <section
@@ -78,7 +107,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
       {/* Parallax Background */}
       <motion.div className="absolute inset-0 scale-110" style={{ y: springY }}>
         <img
-          src="https://images.unsplash.com/photo-1749367092576-786c7c900bff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25jZXJ0JTIwc3RhZ2UlMjBkYXJrJTIwcHVycGxlJTIwbGlnaHRzJTIwY2luZW1hdGljfGVufDF8fHx8MTc3MTUzMjA0MHww&ixlib=rb-4.1.0&q=80&w=1920"
+          src="/7461e7ec73104148c3673b779c060afe.jpeg"
           alt=""
           aria-hidden="true"
           className="w-full h-full object-cover"
@@ -171,7 +200,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
           </p>
         </motion.div>
 
-        {/* Date */}
+        {/* Countdown */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -183,13 +212,13 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
               className="text-2xl sm:text-3xl font-black text-white tracking-wide"
               style={{ fontFamily: AR(lang) }}
             >
-              {t.date}
+              {countdown}
             </p>
             <p
               className="text-sm text-white/40"
               style={{ fontFamily: lang === 'ar' ? "'Cormorant Garamond', serif" : 'Cairo, sans-serif' }}
             >
-              {t.dateSub}
+              {lang === 'ar' ? 'حتى 26-3-2026 8م' : 'until 26-3-2026 8pm'}
             </p>
           </div>
         </motion.div>

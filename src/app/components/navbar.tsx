@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { Globe, Menu, X } from 'lucide-react';
-import logoImage from '@/assets/logo.png';
+import { Globe, Menu, X, MessageCircle } from 'lucide-react';
+import logoImage from '@/assets/sm-logo.png';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
 
 interface NavBarProps {
   lang: 'ar' | 'en';
@@ -13,6 +14,7 @@ const AR = (lang: 'ar' | 'en') => lang === 'ar' ? 'Cairo, sans-serif' : "'Cormor
 
 export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
   const { scrollY } = useScroll();
   const bg = useTransform(scrollY, [0, 80], ['rgba(8,8,8,0)', 'rgba(8,8,8,0.95)']);
   const borderOp = useTransform(scrollY, [0, 80], [0, 0.15]);
@@ -24,8 +26,8 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
   }, [scrollY]);
 
   const t = {
-    ar: { tickets: 'التذاكر', book: 'احجز الآن', switchLang: 'EN', upcoming: 'الفعاليات القادمة', comingSoon: 'قريباً' },
-    en: { tickets: 'Tickets', book: 'Book Now', switchLang: 'ع', upcoming: 'Upcoming Events', comingSoon: 'Coming soon' },
+    ar: { tickets: 'التذاكر', book: 'احجز تذكرتك الآن', switchLang: 'EN', upcoming: 'الفعاليات القادمة', comingSoon: 'قريباً' },
+    en: { tickets: 'Tickets', book: 'Book Your Ticket Now', switchLang: 'ع', upcoming: 'Upcoming Events', comingSoon: 'Coming soon' },
   }[lang];
 
   return (
@@ -45,10 +47,10 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
                 <img src={logoImage} alt="Logo" className="w-full h-full object-cover" />
               </div>
               <span
-                className="text-white/80 text-sm font-semibold hidden sm:block tracking-wide"
+                className="text-white/80 text-sm font-semibold block tracking-wide"
                 style={{ fontFamily: AR(lang) }}
               >
-                {lang === 'ar' ? 'روح الطرب' : 'Rooh Al-Tarab'}
+                Signature Media
               </span>
             </div>
 
@@ -62,7 +64,7 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
                 {t.tickets}
               </button>
               <button
-                onClick={() => alert(t.comingSoon)}
+                onClick={() => setUpcomingOpen(true)}
                 className="text-white/60 hover:text-white text-sm transition-colors"
                 style={{ fontFamily: AR(lang) }}
               >
@@ -106,7 +108,7 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
           className="fixed top-16 inset-x-0 z-30 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-[#C6A04C]/10 py-6 px-6 flex flex-col gap-4 md:hidden"
         >
           <button onClick={() => { onBookNow(); setMenuOpen(false); }} className="text-white/70 text-base" style={{ fontFamily: AR(lang) }}>{t.tickets}</button>
-          <button onClick={() => { alert(t.comingSoon); setMenuOpen(false); }} className="text-white/70 text-base" style={{ fontFamily: AR(lang) }}>{t.upcoming}</button>
+          <button onClick={() => { setUpcomingOpen(true); setMenuOpen(false); }} className="text-white/70 text-base" style={{ fontFamily: AR(lang) }}>{t.upcoming}</button>
           <button onClick={onLanguageToggle} className="text-[#C6A04C]/70 text-base flex items-center gap-2" style={{ fontFamily: AR(lang) }}>
             <Globe className="w-4 h-4" />{t.switchLang}
           </button>
@@ -115,6 +117,39 @@ export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
           </button>
         </motion.div>
       )}
+
+      {/* Upcoming Events Modal */}
+      <Dialog open={upcomingOpen} onOpenChange={setUpcomingOpen}>
+        <DialogContent className="max-w-md bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] border border-[#C6A04C]/20 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: AR(lang) }} className="text-white text-2xl mb-2">
+              {lang === 'ar' ? 'الفعاليات القادمة' : 'Upcoming Events'}
+            </DialogTitle>
+            <DialogDescription style={{ fontFamily: AR(lang) }} className="text-white/60 text-base">
+              {lang === 'ar' ? 'تواصل معنا للاستفسار عن الفعاليات والعروض الخاصة' : 'Contact us to inquire about upcoming events and special offers'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="bg-[#C6A04C]/10 border border-[#C6A04C]/20 rounded-lg p-4">
+              <p style={{ fontFamily: AR(lang) }} className="text-white/80 text-sm">
+                {lang === 'ar' ? 'قريباً سيكون لدينا فعاليات وعروض حصرية' : 'Coming soon we will have exclusive events and offers'}
+              </p>
+            </div>
+
+            <a
+              href="https://wa.me/201015656650?text=مرحبا%20أنا%20مهتم%20بمعرفة%20المزيد%20عن%20الفعاليات%20القادمة"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] px-6 py-3 rounded-full font-black text-sm hover:opacity-90 transition-opacity"
+              style={{ fontFamily: AR(lang) }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              {lang === 'ar' ? 'تواصل عبر واتس' : 'Contact via WhatsApp'}
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
