@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Copy, Upload, X, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { AR } from './utils';
 
 interface BookingFlowProps {
   lang: 'ar' | 'en';
