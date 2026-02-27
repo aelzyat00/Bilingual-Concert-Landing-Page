@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'motion/react';
 import logoImage from '@/assets/logo.png';
+import { AR } from './utils';
+import { CounterBadge } from './counter-badge';
 
 interface HeroSectionProps {
   lang: 'ar' | 'en';
   onBookNowClick: () => void;
 }
-
-const AR = (lang: 'ar' | 'en') => lang === 'ar' ? 'Cairo, sans-serif' : "'Cormorant Garamond', serif";
 
 // Animated particle dots in background
 function Particles() {
@@ -52,7 +52,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
     ar: {
       date: '',
       dateSub: '',
-      eid: 'اليوم الخامس من العيد',
+      eid: 'اليوم الخامس من عيد الفطر المبارك',
       tagline: 'حضور راقٍ لليلة طربية استثنائية',
       sub: 'في أجواء تحمل روح الأصالة والتنظيم الاحترافي',
       cta: 'احجز تذكرتك الآن',
@@ -69,7 +69,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
     },
   }[lang];
 
-  const [countdown, setCountdown] = useState('');
+  const [countdown, setCountdown] = useState({ days: '0', hours: '00', minutes: '00', seconds: '00' });
 
   useEffect(() => {
     const target = new Date('2026-03-26T20:00:00');
@@ -77,7 +77,7 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
       const now = new Date();
       let diff = target.getTime() - now.getTime();
       if (diff <= 0) {
-        setCountdown(lang === 'ar' ? 'انتهى' : 'Started');
+        setCountdown({ days: '0', hours: '00', minutes: '00', seconds: '00' });
         return;
       }
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -87,11 +87,12 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
       const minutes = Math.floor(diff / (1000 * 60));
       diff -= minutes * (1000 * 60);
       const seconds = Math.floor(diff / 1000);
-      if (lang === 'ar') {
-        setCountdown(`${days} يوم ${hours} س ${minutes} د ${seconds} ث`);
-      } else {
-        setCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`);
-      }
+      setCountdown({
+        days: `${days}`,
+        hours: String(hours).padStart(2, '0'),
+        minutes: String(minutes).padStart(2, '0'),
+        seconds: String(seconds).padStart(2, '0'),
+      });
     };
     update();
     const id = setInterval(update, 1000);
@@ -200,27 +201,44 @@ export function HeroSection({ lang, onBookNowClick }: HeroSectionProps) {
           </p>
         </motion.div>
 
-        {/* Countdown */}
+        {/* Countdown badges */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mb-12"
         >
-          <div className="inline-flex flex-col items-center gap-1 px-8 py-4 rounded-2xl bg-white/[0.04] border border-[#C6A04C]/15 backdrop-blur-sm">
-            <p
-              className="text-2xl sm:text-3xl font-black text-white tracking-wide"
-              style={{ fontFamily: AR(lang) }}
-            >
-              {countdown}
-            </p>
-            <p
-              className="text-sm text-white/40"
-              style={{ fontFamily: lang === 'ar' ? "'Cormorant Garamond', serif" : 'Cairo, sans-serif' }}
-            >
-              {lang === 'ar' ? 'حتى 26-3-2026 8م' : 'until 26-3-2026 8pm'}
-            </p>
+          <div className="inline-flex flex-wrap items-center justify-center gap-4 px-6 py-4 rounded-2xl bg-white/[0.04] border border-[#C6A04C]/15 backdrop-blur-sm">
+            <CounterBadge
+              label={lang === 'ar' ? 'أيام' : 'Days'}
+              value={countdown.days}
+              lang={lang}
+            />
+            <CounterBadge
+              label={lang === 'ar' ? 'ساعات' : 'Hours'}
+              value={countdown.hours}
+              lang={lang}
+            />
+            <CounterBadge
+              label={lang === 'ar' ? 'دقائق' : 'Minutes'}
+              value={countdown.minutes}
+              lang={lang}
+            />
+            <CounterBadge
+              label={lang === 'ar' ? 'ثواني' : 'Seconds'}
+              value={countdown.seconds}
+              lang={lang}
+            />
           </div>
+          <p
+            className="mt-2 text-sm text-white/40"
+            style={{
+              fontFamily:
+                lang === 'ar' ? "'Cormorant Garamond', serif" : 'Cairo, sans-serif',
+            }}
+          >
+            {lang === 'ar' ? 'حتى 26-3-2026 8م' : 'until 26-3-2026 8pm'}
+          </p>
         </motion.div>
 
         {/* CTA */}

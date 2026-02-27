@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { HeroSection } from './components/hero-section';
 import { TicketsSection } from './components/tickets-section';
 import { OrganizerSection } from './components/organizer-section';
+import { TestimonialsSection } from './components/testimonials-section';
 import { BookingFlow } from './components/booking-flow';
 import { Footer } from './components/footer';
 import { NavBar } from './components/navbar';
@@ -57,6 +58,7 @@ export default function App() {
       <HeroSection lang={lang} onBookNowClick={handleBookNow} />
       <TicketsSection lang={lang} onSelectTicket={handleSelectTicket} />
       <OrganizerSection lang={lang} />
+      <TestimonialsSection lang={lang} />
       <Footer lang={lang} onLanguageToggle={toggleLanguage} />
       {showBookingFlow && selectedTicket && (
         <BookingFlow lang={lang} selectedTicket={selectedTicket} onClose={handleClose} />

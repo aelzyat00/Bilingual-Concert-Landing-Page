@@ -2,22 +2,15 @@ import { motion, useInView } from 'motion/react';
 import { useRef, useState, useEffect } from 'react';
 import { Sparkles, Music2, Star } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
+import { AR } from './utils';
+import { CounterBadge } from './counter-badge';
 
 interface TicketsSectionProps {
   lang: 'ar' | 'en';
   onSelectTicket: (type: 'vip' | 'standard') => void;
 }
 
-const AR = (lang: 'ar' | 'en') => lang === 'ar' ? 'Cairo, sans-serif' : "'Cormorant Garamond', serif";
 
-function CounterBadge({ label, value, lang }: { label: string; value: string; lang: 'ar' | 'en' }) {
-  return (
-    <div className="flex flex-col items-center px-4 py-2">
-      <span className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: AR(lang) }}>{value}</span>
-      <span className="text-white/35 text-xs uppercase tracking-widest mt-0.5">{label}</span>
-    </div>
-  );
-}
 
 function TicketCard({
   lang, isVip, onSelect,

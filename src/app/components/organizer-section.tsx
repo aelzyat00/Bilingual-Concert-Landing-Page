@@ -9,8 +9,7 @@ interface OrganizerSectionProps {
   lang: 'ar' | 'en';
 }
 
-const AR = (lang: 'ar' | 'en') =>
-  lang === 'ar' ? 'Cairo, sans-serif' : "'Cormorant Garamond', serif";
+import { AR } from './utils';
 
 const TRUST_ICONS = [
   { icon: Mic2,        key: 'audio' },

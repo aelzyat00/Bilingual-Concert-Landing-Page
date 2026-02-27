@@ -9,7 +9,6 @@ interface BookingFlowProps {
   onClose: () => void;
 }
 
-const AR = (lang: 'ar' | 'en') => lang === 'ar' ? 'Cairo, sans-serif' : "'Cormorant Garamond', serif";
 
 function genBookingId() {
   return `RT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;

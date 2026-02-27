@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { Globe, Menu, X, MessageCircle } from 'lucide-react';
 import logoImage from '@/assets/sm-logo.png';
+import { AR } from './utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
 
 interface NavBarProps {
@@ -10,7 +11,6 @@ interface NavBarProps {
   onBookNow: () => void;
 }
 
-const AR = (lang: 'ar' | 'en') => lang === 'ar' ? 'Cairo, sans-serif' : "'Cormorant Garamond', serif";
 
 export function NavBar({ lang, onLanguageToggle, onBookNow }: NavBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);

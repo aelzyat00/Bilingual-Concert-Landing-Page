@@ -1,5 +1,6 @@
 import { motion, useInView } from 'motion/react';
 import { useRef } from 'react';
+import { AR } from './utils';
 import { Globe } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 
@@ -8,7 +9,6 @@ interface FooterProps {
   onLanguageToggle: () => void;
 }
 
-const AR = (lang: 'ar' | 'en') => lang === 'ar' ? 'Cairo, sans-serif' : "'Cormorant Garamond', serif";
 
 export function Footer({ lang, onLanguageToggle }: FooterProps) {
   const ref = useRef(null);
