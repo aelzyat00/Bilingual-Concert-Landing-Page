@@ -4,13 +4,12 @@ import { HeroSection } from './components/hero-section';
 import { TicketsSection } from './components/tickets-section';
 import { OrganizerSection } from './components/organizer-section';
 import { TestimonialsSection } from './components/testimonials-section';
-import { BookingFlow } from './components/booking-flow';
+import { BookingFlowV2 } from './components/booking-flow-v2';
 import { Footer } from './components/footer';
 import { NavBar } from './components/navbar';
 
 export default function App() {
   const [lang, setLang] = useState<'ar' | 'en'>('ar');
-  const [selectedTicket, setSelectedTicket] = useState<'vip' | 'standard' | null>(null);
   const [showBookingFlow, setShowBookingFlow] = useState(false);
 
   useEffect(() => {
@@ -29,14 +28,12 @@ export default function App() {
     document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSelectTicket = (type: 'vip' | 'standard') => {
-    setSelectedTicket(type);
+  const handleSelectTicket = () => {
     setShowBookingFlow(true);
   };
 
   const handleClose = () => {
     setShowBookingFlow(false);
-    setSelectedTicket(null);
   };
 
   return (
@@ -60,9 +57,7 @@ export default function App() {
       <OrganizerSection lang={lang} />
       <TestimonialsSection lang={lang} />
       <Footer lang={lang} onLanguageToggle={toggleLanguage} />
-      {showBookingFlow && selectedTicket && (
-        <BookingFlow lang={lang} selectedTicket={selectedTicket} onClose={handleClose} />
-      )}
+      {showBookingFlow && <BookingFlowV2 lang={lang} onClose={handleClose} />}
     </div>
   );
 }

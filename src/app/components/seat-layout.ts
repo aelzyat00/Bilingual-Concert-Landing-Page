@@ -8,10 +8,10 @@ export const seatLayout = {
   },
 };
 
-export type Seat = { row: string; number: number };
+export type Seat = { row: string; seat_number: number };
 
 export function allSeats(type: keyof typeof seatLayout): Seat[] {
   return Object.entries(seatLayout[type]).flatMap(([row, count]) =>
-    Array.from({ length: count }, (_, i) => ({ row, number: i + 1 }))
+    Array.from({ length: count }, (_, i) => ({ row, seat_number: i + 1 }))
   );
 }
