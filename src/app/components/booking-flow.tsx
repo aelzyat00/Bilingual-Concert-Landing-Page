@@ -4,17 +4,30 @@ import { Check, Copy, Upload, X, AlertCircle, ChevronLeft, ChevronRight } from '
 import { toast } from 'sonner';
 import { AR } from './utils';
 
+// seating support
+import { Seat, allSeats } from './seat-layout';
+import SeatPicker from './seat-picker';
+
 interface BookingFlowProps {
   lang: 'ar' | 'en';
   selectedTicket: 'vip' | 'standard';
   onClose: () => void;
 }
 
+// reused types
+interface FormData {
+  name: string;
+  phone: string;
+  email: string;
+  quantity: number;
+}
+
+
 function genBookingId() {
   return `RT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 }
 
-function validate(formData: { name: string; phone: string; email: string; quantity: number }) {
+function validate(formData: FormData) {
   const errors: Record<string, string> = {};
   if (formData.name.trim().length < 2) errors.name = 'name';
   if (!/^(01)[0-9]{9}$/.test(formData.phone.replace(/\s/g, ''))) errors.phone = 'phone';
@@ -23,11 +36,19 @@ function validate(formData: { name: string; phone: string; email: string; quanti
   return errors;
 }
 
+function validateSeats(quantity: number, selectedSeats: Seat[]) {
+  const errors: Record<string, string> = {};
+  if (selectedSeats.length !== quantity) errors.seats = 'seats';
+  return errors;
+}
+
+
 export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', quantity: 1 });
+  const [formData, setFormData] = useState<FormData>({ name: '', phone: '', email: '', quantity: 1 });
   const [paymentMethod, setPaymentMethod] = useState<'vodafone' | 'instapay' | 'card'>('vodafone');
   const [seatsNote, setSeatsNote] = useState('');
+  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [receipt, setReceipt] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -52,7 +73,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
 
   const content = {
     ar: {
-      stepLabels: ['التذكرة', 'بياناتك', 'راجع معلوماتك', 'طريقة الدفع', 'المقاعد/ملاحظة', 'الدفع', 'انتهى'],
+      stepLabels: ['التذكرة', 'بياناتك', 'اختيار المقاعد', 'راجع معلوماتك', 'طريقة الدفع', 'الدفع', 'تم'],
       vipName: 'VIP Signature', stdName: 'Classic Ticket',
       vipPrice: '500 جنيه', stdPrice: '350 جنيه',
       ticketLabel: 'التذكرة المختارة', priceLabel: 'السعر',
@@ -64,6 +85,16 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       paymentTitle: 'اختر طريقة الدفع',
       paymentOptions: ['فودافون كاش', 'إنستاباي', 'كارت بنكي'],
       seatsLabel: 'اختر الأماكن أو اكتب ملاحظة', seatsPh: 'اكتب ملاحظتك هنا',
+      errs: {
+        name: 'الاسم يجب أن يحتوي على حرفين على الأقل',
+        phone: 'رقم يبدأ بـ 01 ومكون من 11 رقم',
+        email: 'بريد إلكتروني غير صحيح',
+        quantity: 'أدخل عدداً صحيحاً أكبر من 0',
+        seats: 'اختر المقاعد المطابقة لعدد التذاكر',
+        receipt: 'ارفع إيصال الدفع أولاً',
+        size: 'حجم الملف يتجاوز 10MB',
+        type: 'نوع الملف غير مدعوم',
+      },
       whatsappText: 'ارسل الدفع عبر واتساب',
       next: 'التالي', back: 'رجوع',
       reviewTitle: 'راجع معلوماتك',
@@ -81,18 +112,9 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       close: 'إغلاق',
       uploaded: 'تم رفع الإيصال ✓',
       whatsappReceive: 'استلام التذاكر عبر واتساب',
-      errs: {
-        name: 'الاسم يجب أن يحتوي على حرفين على الأقل',
-        phone: 'رقم يبدأ بـ 01 ومكون من 11 رقم',
-        email: 'بريد إلكتروني غير صحيح',
-        quantity: 'أدخل عدداً صحيحاً أكبر من 0',
-        receipt: 'ارفع إيصال الدفع أولاً',
-        size: 'حجم الملف يتجاوز 10MB',
-        type: 'نوع الملف غير مدعوم',
-      },
     },
     en: {
-      stepLabels: ['Ticket', 'Details', 'Review', 'Payment Method', 'Seats/Note', 'Payment', 'Done'],
+      stepLabels: ['Ticket', 'Details', 'Seats', 'Review', 'Payment Method', 'Payment', 'Done'],
       vipName: 'VIP Signature', stdName: 'Classic Ticket',
       vipPrice: 'EGP 500', stdPrice: 'EGP 350',
       ticketLabel: 'Selected Ticket', priceLabel: 'Price',
@@ -104,6 +126,16 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       paymentTitle: 'Choose payment method',
       paymentOptions: ['Vodafone Cash', 'InstaPay', 'Bank Card'],
       seatsLabel: 'Select seats or write a note', seatsPh: 'Type your note here',
+      errs: {
+        name: 'Name must be at least 2 characters',
+        phone: 'Must start with 01 and be 11 digits',
+        email: 'Invalid email address',
+        quantity: 'Enter a valid number greater than 0',
+        seats: 'Pick seats matching the ticket count',
+        receipt: 'Please upload your payment receipt',
+        size: 'File exceeds 10MB limit',
+        type: 'Unsupported file type',
+      },
       whatsappText: 'Send payment via WhatsApp',
       next: 'Next', back: 'Back',
       reviewTitle: 'Review your info',
@@ -121,15 +153,6 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       close: 'Close',
       uploaded: 'Receipt uploaded ✓',
       whatsappReceive: 'Receive tickets via WhatsApp',
-      errs: {
-        name: 'Name must be at least 2 characters',
-        phone: 'Must start with 01 and be 11 digits',
-        email: 'Invalid email address',
-        quantity: 'Enter a valid number greater than 0',
-        receipt: 'Please upload your payment receipt',
-        size: 'File exceeds 10MB limit',
-        type: 'Unsupported file type',
-      },
     },
   }[lang];
 
@@ -159,9 +182,8 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     const errs = validate(formData);
     setErrors(errs);
     if (Object.keys(errs).length === 0) {
-      setStep(3); // move to review
+      setStep(3); // move to seats selection
     } else {
-      // focus first invalid field for accessibility
       const first = Object.keys(errs)[0];
       const refs: Record<string, React.RefObject<HTMLInputElement>> = {
         name: nameRef,
@@ -173,20 +195,26 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
     }
   };
 
-  const goNextFromReview = () => {
-    // from review -> payment method
-    setStep(4);
+  const goNextSeat = () => {
+    const errs = validateSeats(formData.quantity, selectedSeats);
+    setErrors(errs);
+    if (Object.keys(errs).length === 0) {
+      setStep(4); // review
+    }
   };
 
-  const goNext3 = () => {
-    // from payment method -> seats/note
+  const goNextFromReview = () => {
     setStep(5);
   };
 
-  const goNext4 = () => {
-    // from seats -> payment upload
-    setStep(6);
+  const goNext3 = () => {
+    setStep(6); // payment upload
   };
+
+  const goNext4 = () => {
+    setStep(7);
+  };
+
 
   const handleConfirm = () => {
     if (!receipt) {
@@ -194,7 +222,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
       fileRef.current?.focus();
       return;
     }
-    setStep(7);
+    setStep(7); // move to confirmed page
   };
 
   const BackBtn = ({ onClick }: { onClick: () => void }) => (
@@ -406,8 +434,48 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* ── Step 3: Review ── */}
+              {/* ── Step 3: Seats ── */}
               {step === 3 && (
+                <motion.div key="s3" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
+                  <motion.h2 className="text-xl font-black text-center text-white mb-6" style={{ fontFamily: AR(lang) }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    {content.stepLabels[2]}
+                  </motion.h2>
+                  <div className="mb-4">
+                    <SeatPicker
+                      type={selectedTicket}
+                      available={new Set<string>() /* TODO: replace with API data */}
+                      quantity={formData.quantity}
+                      onChange={setSelectedSeats}
+                    />
+                    {errors.seats && <p className="mt-2 text-red-400/80 text-xs" role="alert" style={{ fontFamily: AR(lang) }}>{content.errs.seats}</p>}
+                  </div>
+                  <div className="mb-4">
+                    <label htmlFor="seat-note" className="block text-white/50 text-xs mb-1.5" style={{ fontFamily: AR(lang) }}>{content.seatsLabel}</label>
+                    <textarea
+                      id="seat-note"
+                      value={seatsNote}
+                      placeholder={content.seatsPh}
+                      onChange={e => setSeatsNote(e.target.value)}
+                      className="w-full bg-[#111] border border-white/8 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:bg-[#161616] transition-all h-24 resize-none"
+                      style={{ fontFamily: AR(lang) }}
+                      aria-label={content.seatsLabel}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <BackBtn onClick={() => setStep(2)} />
+                    <button
+                      onClick={goNextSeat}
+                      className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]"
+                      style={{ fontFamily: AR(lang) }}
+                    >
+                      {content.next} {lang === 'ar' ? '←' : '→'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── Step 4: Review ── */}
+              {step === 4 && (
                 <motion.div key="s3-review" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <h2 className="text-xl font-black text-center text-white mb-4" style={{ fontFamily: AR(lang) }}>{content.reviewTitle}</h2>
                   <div className="space-y-3 mb-6">
@@ -439,12 +507,17 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                       </div>
                       <button onClick={() => setStep(2)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل الكمية':'Edit quantity'}>{lang==='ar'?'تعديل':'Edit'}</button>
                     </div>
-                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex items-center justify-between">
-                      <div className="min-w-0">
+                    <div className="bg-[#111] border border-white/6 rounded-xl p-4 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
                         <p className="text-white/40 text-xs mb-0.5" style={{ fontFamily: AR(lang) }}>{content.seatsLabel}</p>
-                        <p className="text-white truncate" style={{ fontFamily: AR(lang) }}>{seatsNote || '-'}</p>
+                        <button onClick={() => setStep(3)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل الأماكن':'Edit seats'}>{lang==='ar'?'تعديل':'Edit'}</button>
                       </div>
-                      <button onClick={() => setStep(4)} className="text-xs text-[#C6A04C] px-3 py-2 rounded-lg" aria-label={lang==='ar'?'تعديل الأماكن':'Edit seats/note'}>{lang==='ar'?'تعديل':'Edit'}</button>
+                      <p className="text-white truncate" style={{ fontFamily: AR(lang) }}>
+                        {selectedSeats.length > 0 ? selectedSeats.map(s => `${s.row}${s.number}`).join(', ') : '-'}
+                      </p>
+                      {seatsNote && (
+                        <p className="text-white/50 text-xs italic" style={{ fontFamily: AR(lang) }}>{seatsNote}</p>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -456,8 +529,8 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* ── Step 4: Payment Method ── */}
-              {step === 4 && (
+              {/* ── Step 5: Payment Method ── */}
+              {step === 5 && (
                 <motion.div key="s4" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <motion.h2
                     id="step-heading"
@@ -484,7 +557,7 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                     })}
                   </div>
                   <div className="flex gap-3">
-                    <BackBtn onClick={() => setStep(3)} />
+                    <BackBtn onClick={() => setStep(4)} />
                     <button onClick={goNext3} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
                       {content.next} {lang === 'ar' ? '←' : '→'}
                     </button>
@@ -492,37 +565,9 @@ export function BookingFlow({ lang, selectedTicket, onClose }: BookingFlowProps)
                 </motion.div>
               )}
 
-              {/* ── Step 5: Seats / Note ── */}
-              {step === 5 && (
-                <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
-                  <motion.h2
-                    id="step-heading"
-                    className="text-xl font-black text-center text-white mb-6"
-                    style={{ fontFamily: AR(lang) }}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >{content.seatsLabel}</motion.h2>
-                  <textarea
-                    id="seats"
-                    value={seatsNote}
-                    placeholder={content.seatsPh}
-                    onChange={e => setSeatsNote(e.target.value)}
-                    className="w-full bg-[#111] border border-white/8 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/20 focus:outline-none focus:bg-[#161616] transition-all h-24 resize-none"
-                    style={{ fontFamily: AR(lang) }}
-                    aria-label={content.seatsLabel}
-                  />
-                  <div className="flex gap-3 mt-4">
-                    <BackBtn onClick={() => setStep(4)} />
-                    <button onClick={goNext4} className="flex-1 bg-gradient-to-r from-[#C6A04C] to-[#A8382A] text-[#080808] font-black py-3.5 rounded-xl hover:opacity-90 transition-opacity text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C6A04C]" style={{ fontFamily: AR(lang) }}>
-                      {content.next} {lang === 'ar' ? '←' : '→'}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
 
-              {/* ── Step 6: Payment (upload + WhatsApp) ── */}
-              {step === 6 && (
+              {/* ── Step 7: Payment (upload + WhatsApp) ── */}
+              {step === 7 && (
                 <motion.div key="s5" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.25 }}>
                   <motion.h2 className="text-xl font-black text-center text-white mb-1" style={{ fontFamily: AR(lang) }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>{content.payTitle}</motion.h2>
                   <p className="text-white/35 text-xs text-center mb-6 leading-relaxed" style={{ fontFamily: AR(lang) }}>{content.payDesc}</p>
