@@ -16,9 +16,9 @@ export default function SeatPicker({ type, available, quantity, onChange, lang }
   const accentColor = isVip ? '#C6A04C' : '#A8382A';
 
   function toggle(seat: Seat) {
-    const key = `${seat.row}-${seat.number}`;
+    const key = `${seat.row}-${seat.seat_number}`;
     if (available.has(key)) return;
-    const idx = selected.findIndex(s => s.row === seat.row && s.number === seat.number);
+    const idx = selected.findIndex(s => s.row === seat.row && s.seat_number === seat.seat_number);
     let next = [...selected];
     if (idx >= 0) {
       next.splice(idx, 1);
@@ -51,10 +51,10 @@ export default function SeatPicker({ type, available, quantity, onChange, lang }
               <span className="w-5 sm:w-6 text-center font-semibold text-white/60 text-[10px] sm:text-xs flex-shrink-0">{row}</span>
               <div className="flex gap-0.5 sm:gap-1 flex-wrap justify-center">
                 {Array.from({ length: count as number }, (_, i) => {
-                  const seat = { row, number: i + 1 };
-                  const key = `${row}-${seat.number}`;
+                  const seat = { row, seat_number: i + 1 };
+                  const key = `${row}-${seat.seat_number}`;
                   const busy = available.has(key);
-                  const sel = selected.some(s => s.row === row && s.number === seat.number);
+                  const sel = selected.some(s => s.row === row && s.seat_number === seat.seat_number);
                   return (
                     <motion.button
                       key={key}
@@ -110,7 +110,7 @@ export default function SeatPicker({ type, available, quantity, onChange, lang }
         </p>
         {selected.length > 0 && (
           <p className="text-[10px] sm:text-xs text-white/50 mt-1 break-words">
-            {selected.map(s => `${s.row}${s.number}`).join(', ')}
+            {selected.map(s => `${s.row}${s.seat_number}`).join(', ')}
           </p>
         )}
       </div>

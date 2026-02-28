@@ -264,7 +264,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <TicketCard
             lang={lang} isVip={false}
-            onSelect={() => onSelectTicket('standard')}
+            onSelect={() => onSelectTicket()}
             title={t.classicTitle} titleSub={t.classicSub}
             badge={t.classicBadge}
             price={t.classicPrice} currency={t.classicCur}
@@ -273,7 +273,7 @@ export function TicketsSection({ lang, onSelectTicket }: TicketsSectionProps) {
           />
           <TicketCard
             lang={lang} isVip={true}
-            onSelect={() => onSelectTicket('vip')}
+            onSelect={() => onSelectTicket()}
             title={t.vipTitle} titleSub={t.vipSub}
             badge={t.vipBadge}
             price={t.vipPrice} currency={t.vipCur}
